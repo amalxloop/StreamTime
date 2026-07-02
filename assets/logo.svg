@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#0f0f1a"/>
+  <g transform="translate(256, 240)">
+    <text font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="240"
+          text-anchor="middle" dominant-baseline="central"
+          fill="#ffffff" letter-spacing="8">
+      ST
+    </text>
+  </g>
+  <g transform="translate(256, 400)">
+    <text font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="36"
+          text-anchor="middle" dominant-baseline="central"
+          fill="#888888" letter-spacing="12">
+      STREAMTIME
+    </text>
+  </g>
+</svg>
