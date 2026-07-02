@@ -1,4 +1,5 @@
 # StreamTime
+<img width="1511" height="142" alt="Screenshot 2026-07-02 at 22-09-24 " src="https://github.com/user-attachments/assets/24123426-1833-4c4b-a8af-1ee66370db97" />
 
 Cross-platform app to rate and review your favorite movies, TV shows, and anime.
 
