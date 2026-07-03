@@ -65,6 +65,15 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="import"
+        options={{
+          title: 'Import',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="download" size={22} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

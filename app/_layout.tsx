@@ -61,6 +61,10 @@ function RootLayoutNav() {
           name="category/[type]"
           options={{ headerShown: true, title: 'Browse', presentation: 'card' }}
         />
+        <Stack.Screen
+          name="import"
+          options={{ headerShown: true, title: 'Import', presentation: 'card' }}
+        />
       </Stack>
     </ThemeProvider>
   );
