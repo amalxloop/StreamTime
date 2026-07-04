@@ -14,7 +14,7 @@ Local-first. No account, no server, no data leaving your device unless you choos
 - **Persist** — all ratings saved locally via AsyncStorage
 - **Theme** — light/dark toggle, persisted preference
 - **Categories** — "See All" links for full-list browsing with infinite scroll
-- **Import** — import ratings from Letterboxd and TV Time
+- **Import** — import ratings from Letterboxd
 
 ## Stack
 
