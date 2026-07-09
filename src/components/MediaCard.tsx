@@ -1,8 +1,6 @@
 import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useAppTheme } from '@/src/hooks/useAppTheme';
 import type { MediaItem } from '../api/types';
-import Colors from '@/constants/Colors';
 
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 
@@ -13,12 +11,11 @@ interface MediaCardProps {
 }
 
 export function MediaCard({ item, onPress, compact = false }: MediaCardProps) {
-  const colorScheme = useAppTheme();
-  const colors = Colors[colorScheme];
-
   const imageUrl = item.source === 'tmdb'
     ? item.posterPath ? `${TMDB_IMAGE_BASE}${item.posterPath}` : null
     : item.posterPath;
+
+  const ratingColor = item.voteAverage >= 7 ? '#4caf50' : item.voteAverage >= 5 ? '#ff9800' : '#f44336';
 
   return (
     <Pressable
@@ -29,19 +26,19 @@ export function MediaCard({ item, onPress, compact = false }: MediaCardProps) {
         {imageUrl ? (
           <Image source={imageUrl} style={styles.image} contentFit="cover" />
         ) : (
-          <View style={[styles.placeholder, { backgroundColor: colors.cardBorder }]}>
+          <View style={styles.placeholder}>
             <Text style={styles.placeholderText}>?</Text>
           </View>
         )}
         {item.voteAverage > 0 && (
-          <View style={styles.ratingBadge}>
-            <Text style={styles.ratingText}>
-              {item.voteAverage.toFixed(1)}
+          <View style={[styles.badge, { backgroundColor: ratingColor }]}>
+            <Text style={styles.badgeText}>
+              ★ {item.voteAverage.toFixed(1)}
             </Text>
           </View>
         )}
       </View>
-      <Text style={[styles.title, { color: colors.text }, compact && styles.titleCompact]} numberOfLines={2}>
+      <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={2}>
         {item.title}
       </Text>
       {item.releaseDate && (
@@ -64,8 +61,13 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: 140,
     height: 210,
-    borderRadius: 8,
+    borderRadius: 10,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
   },
   imageContainerCompact: {
     width: 110,
@@ -78,38 +80,39 @@ const styles = StyleSheet.create({
   placeholder: {
     width: '100%',
     height: '100%',
+    backgroundColor: '#1a1a2e',
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderText: {
     fontSize: 32,
-    color: '#666',
+    color: '#444',
   },
-  ratingBadge: {
+  badge: {
     position: 'absolute',
     top: 6,
     left: 6,
-    backgroundColor: '#ff6b35',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
-  ratingText: {
+  badgeText: {
     color: '#fff',
     fontSize: 11,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
   title: {
     fontSize: 13,
     fontWeight: '600',
-    marginTop: 6,
+    color: '#e0e0e0',
+    marginTop: 8,
   },
   titleCompact: {
     fontSize: 12,
   },
   year: {
     fontSize: 11,
-    color: '#888',
+    color: '#666',
     marginTop: 2,
   },
 });

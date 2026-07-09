@@ -1,17 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
+  Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import ViewShot from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { RatingInput } from '@/src/components/RatingInput';
 import { ReviewModal } from '@/src/components/ReviewModal';
+import { ShareCard } from '@/src/components/ShareCard';
+import { generateShareCardImage } from '@/src/utils/drawShareCard';
 import { useRatingsStore } from '@/src/store/ratings';
 import { getMovieDetails, getTvDetails, getAnimeDetails } from '@/src/api';
 import type { MediaDetails, MediaType, SourceType } from '@/src/api/types';
@@ -28,11 +35,14 @@ interface DetailScreenProps {
 
 export function DetailScreen({ mediaType, source, fetchDetails }: DetailScreenProps) {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const navigation = useNavigation();
   const colorScheme = useAppTheme();
   const colors = Colors[colorScheme];
   const [details, setDetails] = useState<MediaDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [showReview, setShowReview] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const shareRef = useRef<ViewShot>(null);
 
   const userRating = useRatingsStore((s) =>
     s.getRatingForMedia(Number(id), mediaType),
@@ -46,6 +56,12 @@ export function DetailScreen({ mediaType, source, fetchDetails }: DetailScreenPr
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (details) {
+      navigation.setOptions({ title: details.title });
+    }
+  }, [details, navigation]);
 
   const getPosterUrl = () => {
     if (source === 'tmdb' && details?.posterPath) {
@@ -76,6 +92,57 @@ export function DetailScreen({ mediaType, source, fetchDetails }: DetailScreenPr
     setShowReview(false);
   };
 
+  const handleShare = async () => {
+    if (!details || !userRating) return;
+    setSharing(true);
+    try {
+      if (Platform.OS === 'web') {
+        const blob = await generateShareCardImage({
+          title: details.title,
+          rating: userRating.rating,
+          review: userRating.review,
+          posterPath: details.posterPath,
+          mediaType,
+          source,
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${details.title.replace(/[^a-zA-Z0-9]/g, '_')}_${userRating.rating}_10.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        Alert.alert('Image Downloaded', 'Share the downloaded image anywhere!');
+        return;
+      }
+
+      await new Promise((r) => requestAnimationFrame(r));
+      const uri = await shareRef.current?.capture();
+      if (uri && (await Sharing.isAvailableAsync())) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: `Share your ${details.title} rating`,
+        });
+        return;
+      }
+
+      await Share.share({
+        message: `I rated ${details.title} ${userRating.rating}/10 on StreamTime!`,
+      });
+    } catch {
+      const fallbackMsg = `I rated ${details.title} ${userRating.rating}/10 on StreamTime!`;
+      if (Platform.OS === 'web') {
+        await navigator.clipboard.writeText(fallbackMsg);
+        Alert.alert('Copied!', 'Rating text copied to clipboard.');
+      } else {
+        await Share.share({ message: fallbackMsg });
+      }
+    } finally {
+      setSharing(false);
+    }
+  };
+
   if (loading || !details) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
@@ -85,6 +152,7 @@ export function DetailScreen({ mediaType, source, fetchDetails }: DetailScreenPr
   }
 
   const backdropUrl = getBackdropUrl();
+  const ratingColor = details.voteAverage >= 7 ? '#4caf50' : details.voteAverage >= 5 ? '#ff9800' : '#f44336';
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -106,23 +174,30 @@ export function DetailScreen({ mediaType, source, fetchDetails }: DetailScreenPr
             )}
           </View>
           <View style={styles.titleSection}>
+            <Text style={styles.mediaTypeBadge}>{mediaType.toUpperCase()}</Text>
             <Text style={[styles.title, { color: colors.text }]}>{details.title}</Text>
             {details.tagline && (
               <Text style={styles.tagline}>{details.tagline}</Text>
             )}
             <View style={styles.metaRow}>
               {details.releaseDate && (
-                <Text style={styles.meta}>{details.releaseDate.slice(0, 4)}</Text>
+                <View style={styles.metaChip}>
+                  <Text style={styles.metaText}>{details.releaseDate.slice(0, 4)}</Text>
+                </View>
               )}
               {details.runtime && (
-                <Text style={styles.meta}>{details.runtime}m</Text>
+                <View style={styles.metaChip}>
+                  <Text style={styles.metaText}>{details.runtime}m</Text>
+                </View>
               )}
-              <Text style={[styles.meta, { color: colors.text }]}>{mediaType}</Text>
+              <View style={[styles.metaChip, { backgroundColor: ratingColor }]}>
+                <Text style={styles.metaText}>★ {details.voteAverage.toFixed(1)}</Text>
+              </View>
             </View>
             <View style={styles.genresRow}>
               {details.genres.map((g) => (
                 <View key={g.id} style={[styles.genreChip, { backgroundColor: colors.cardBorder }]}>
-                  <Text style={styles.genreLabel}>{g.name}</Text>
+                  <Text style={[styles.genreLabel, { color: '#aaa' }]}>{g.name}</Text>
                 </View>
               ))}
             </View>
@@ -138,29 +213,65 @@ export function DetailScreen({ mediaType, source, fetchDetails }: DetailScreenPr
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Your Rating</Text>
-          <RatingInput
-            value={userRating?.rating ?? 0}
-            onChange={() => {}}
-            size="small"
-          />
-          <Pressable
-            style={[styles.reviewBtn, { backgroundColor: colors.tint }]}
-            onPress={() => setShowReview(true)}
-          >
-            <Text style={styles.reviewBtnText}>
-              {userRating ? 'Edit Rating & Review' : 'Rate & Review'}
-            </Text>
-          </Pressable>
-          {userRating?.review && (
-            <View style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-              <Text style={styles.reviewCardLabel}>Your Review</Text>
-              <Text style={[styles.reviewCardText, { color: colors.text }]}>
-                "{userRating.review}"
-              </Text>
+
+          <View style={[styles.ratingCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            {userRating && (
+              <View style={styles.userRatingHeader}>
+                <View style={styles.userRatingBadge}>
+                  <Text style={styles.userRatingNumber}>{userRating.rating}</Text>
+                  <Text style={styles.userRatingSlash}>/10</Text>
+                </View>
+                {userRating.review && (
+                  <Text style={styles.userRatingReview}>"{userRating.review}"</Text>
+                )}
+              </View>
+            )}
+            <RatingInput
+              value={userRating?.rating ?? 0}
+              onChange={() => {}}
+              size="small"
+            />
+            <View style={styles.ratingActions}>
+              <Pressable
+                style={[styles.rateBtn, { backgroundColor: colors.tint }]}
+                onPress={() => setShowReview(true)}
+              >
+                <Text style={styles.rateBtnText}>
+                  {userRating ? 'Edit' : 'Rate & Review'}
+                </Text>
+              </Pressable>
+              {userRating && (
+                <Pressable
+                  style={[styles.shareBtn, { borderColor: colors.tint }]}
+                  onPress={handleShare}
+                  disabled={sharing}
+                >
+                  {sharing ? (
+                    <ActivityIndicator size="small" color={colors.tint} />
+                  ) : (
+                    <Text style={[styles.shareBtnText, { color: colors.tint }]}>Share</Text>
+                  )}
+                </Pressable>
+              )}
             </View>
-          )}
+          </View>
         </View>
       </View>
+
+      {Platform.OS !== 'web' && (
+        <View style={styles.shareCapture}>
+          <ViewShot ref={shareRef} options={{ format: 'png', quality: 1 }}>
+            <ShareCard
+              title={details.title}
+              rating={userRating?.rating ?? 0}
+              review={userRating?.review ?? null}
+              posterPath={details.posterPath}
+              mediaType={mediaType}
+              source={source}
+            />
+          </ViewShot>
+        </View>
+      )}
 
       <ReviewModal
         visible={showReview}
@@ -170,6 +281,8 @@ export function DetailScreen({ mediaType, source, fetchDetails }: DetailScreenPr
         initialReview={userRating?.review ?? null}
         title={`Rate ${details.title}`}
       />
+
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
@@ -202,7 +315,7 @@ const styles = StyleSheet.create({
   posterContainer: {
     width: 120,
     height: 180,
-    borderRadius: 8,
+    borderRadius: 10,
     overflow: 'hidden',
     elevation: 8,
     shadowColor: '#000',
@@ -225,6 +338,13 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     gap: 6,
   },
+  mediaTypeBadge: {
+    fontSize: 10,
+    color: '#ff6b35',
+    fontWeight: '700',
+    letterSpacing: 2,
+    marginBottom: 2,
+  },
   title: {
     fontSize: 20,
     fontWeight: '800',
@@ -236,17 +356,20 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 6,
     marginTop: 4,
+    flexWrap: 'wrap',
   },
-  meta: {
-    fontSize: 12,
-    color: '#aaa',
-    backgroundColor: '#2a2a3e',
+  metaChip: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    overflow: 'hidden',
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: '#2a2a3e',
+  },
+  metaText: {
+    fontSize: 11,
+    color: '#ccc',
+    fontWeight: '600',
   },
   genresRow: {
     flexDirection: 'row',
@@ -255,13 +378,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   genreChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
   },
   genreLabel: {
     fontSize: 11,
-    color: '#aaa',
+    fontWeight: '500',
   },
   section: {
     marginTop: 24,
@@ -269,39 +392,76 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   overview: {
     fontSize: 14,
     lineHeight: 22,
+    opacity: 0.85,
   },
-  reviewBtn: {
-    marginTop: 16,
+  ratingCard: {
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    gap: 16,
+  },
+  userRatingHeader: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  userRatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  userRatingNumber: {
+    fontSize: 40,
+    fontWeight: '800',
+    color: '#ff6b35',
+    lineHeight: 44,
+    fontVariant: ['tabular-nums'],
+  },
+  userRatingSlash: {
+    fontSize: 16,
+    color: '#888',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  userRatingReview: {
+    fontSize: 13,
+    color: '#888',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  ratingActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  rateBtn: {
+    flex: 2,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
   },
-  reviewBtnText: {
+  rateBtnText: {
     color: '#fff',
     fontSize: 15,
     fontWeight: '700',
   },
-  reviewCard: {
-    marginTop: 12,
-    padding: 14,
+  shareBtn: {
+    flex: 1,
+    paddingVertical: 14,
     borderRadius: 12,
-    borderWidth: 1,
+    alignItems: 'center',
+    borderWidth: 1.5,
   },
-  reviewCardLabel: {
-    fontSize: 11,
-    color: '#888',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    marginBottom: 6,
+  shareBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
-  reviewCardText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    lineHeight: 20,
+  shareCapture: {
+    position: 'absolute',
+    left: -9999,
+    top: -9999,
   },
 });
