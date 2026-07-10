@@ -37,13 +37,24 @@ export function ShareCard({ title, rating, review, posterPath, mediaType, source
 
               <View style={styles.ratingSection}>
                 <View style={styles.ratingBadge}>
-                  {Array.from({ length: 5 }, (_, i) => (
-                    <Text key={i} style={[styles.star, i < Math.round(rating / 2) && styles.starFilled]}>
-                      ★
-                    </Text>
-                  ))}
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const filled = i + 1 <= rating;
+                    const isSelected = i + 1 === rating;
+                    return (
+                      <Text
+                        key={i}
+                        style={[
+                          styles.star,
+                          filled && styles.starFilled,
+                          isSelected && styles.starBorder,
+                        ]}
+                      >
+                        {i + 1}
+                      </Text>
+                    );
+                  })}
                 </View>
-                <Text style={styles.ratingText}>{rating}/10</Text>
+                <Text style={styles.ratingText}>{rating}/5</Text>
               </View>
 
               {review && (
@@ -120,14 +131,26 @@ const styles = StyleSheet.create({
   },
   ratingBadge: {
     flexDirection: 'row',
-    gap: 2,
+    gap: 4,
   },
   star: {
-    fontSize: 18,
-    color: '#333',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#555',
+    backgroundColor: '#2a2a3e',
+    borderRadius: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    overflow: 'hidden',
+    textAlignVertical: 'center',
   },
   starFilled: {
-    color: '#ff6b35',
+    color: '#fff',
+    backgroundColor: '#ff6b35',
+  },
+  starBorder: {
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   ratingText: {
     fontSize: 14,

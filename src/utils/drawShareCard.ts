@@ -88,37 +88,40 @@ export async function generateShareCardImage(data: ShareCardData): Promise<Blob>
     ctx.fillText(line, textX, centerY - 38 + i * 28);
   });
 
-  // Rating dots: 1-10 pills matching the app UI
+  // Rating dots: 1-5 pills matching the app UI
   const dotY = centerY + 30;
-  const dotSize = 22;
-  const dotGap = 4;
-  for (let i = 0; i < 10; i++) {
+  const dotSize = 28;
+  const dotGap = 6;
+  const totalWidth = 5 * dotSize + 4 * dotGap;
+  const remainingWidth = WIDTH - textX - PADDING;
+  const dotX = textX + Math.max(0, (remainingWidth - totalWidth) / 2);
+  for (let i = 0; i < 5; i++) {
     const num = i + 1;
     const filled = num <= rating;
-    const x = textX + i * (dotSize + dotGap);
+    const x = dotX + i * (dotSize + dotGap);
 
     ctx.fillStyle = filled ? '#ff6b35' : '#2a2a3e';
     ctx.beginPath();
-    ctx.roundRect(x, dotY - dotSize / 2, dotSize, dotSize, 5);
+    ctx.roundRect(x, dotY - dotSize / 2, dotSize, dotSize, 6);
     ctx.fill();
 
     if (num === rating) {
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(x, dotY - dotSize / 2, dotSize, dotSize, 5);
+      ctx.roundRect(x, dotY - dotSize / 2, dotSize, dotSize, 6);
       ctx.stroke();
     }
 
     ctx.fillStyle = filled ? '#ffffff' : '#666666';
-    ctx.font = 'bold 11px sans-serif';
-    ctx.fillText(String(num), x + 6, dotY + 4);
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(String(num), x + 9, dotY + 5);
   }
 
   // Rating text
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 20px Arial, sans-serif';
-  ctx.fillText(`${rating}/10`, textX + 10 * (dotSize + dotGap) + 12, dotY + 6);
+  ctx.fillText(`${rating}/5`, textX + 5 * (dotSize + dotGap) + 12, dotY + 6);
 
   // Review
   if (review) {

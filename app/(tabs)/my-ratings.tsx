@@ -76,10 +76,10 @@ export default function MyRatingsScreen() {
       }
 
       await Share.share({
-        message: `I rated ${item.title} ${item.rating}/10 on StreamTime!`,
+        message: `I rated ${item.title} ${item.rating}/5 on StreamTime!`,
       });
     } catch {
-      const fallbackMsg = `I rated ${item.title} ${item.rating}/10 on StreamTime!`;
+      const fallbackMsg = `I rated ${item.title} ${item.rating}/5 on StreamTime!`;
       if (Platform.OS === 'web') {
         await navigator.clipboard.writeText(fallbackMsg);
         Alert.alert('Copied!', 'Rating copied to clipboard.');
@@ -132,7 +132,7 @@ export default function MyRatingsScreen() {
                   </Text>
                   <View style={styles.ratingRow}>
                     <Text style={styles.ratingNumber}>{item.rating}</Text>
-                    <Text style={styles.ratingSlash}>/10</Text>
+                    <Text style={styles.ratingSlash}>/5</Text>
                   </View>
                   {item.review && (
                     <Text style={styles.review} numberOfLines={2}>

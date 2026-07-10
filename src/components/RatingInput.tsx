@@ -12,7 +12,7 @@ export function RatingInput({ value, onChange, size = 'large' }: RatingInputProp
   return (
     <View style={styles.container}>
       <View style={[styles.row, isSmall && styles.rowSmall]}>
-        {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => {
+        {Array.from({ length: 5 }, (_, i) => i + 1).map((num) => {
           const filled = num <= value;
           return (
             <Pressable
@@ -40,7 +40,7 @@ export function RatingInput({ value, onChange, size = 'large' }: RatingInputProp
         })}
       </View>
       <Text style={[styles.valueLabel, isSmall && styles.valueLabelSmall]}>
-        {value > 0 ? `${value}/10` : 'Tap to rate'}
+        {value > 0 ? `${value}/5` : 'Tap to rate'}
       </Text>
     </View>
   );

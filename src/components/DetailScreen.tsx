@@ -108,7 +108,7 @@ export function DetailScreen({ mediaType, source, fetchDetails }: DetailScreenPr
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${details.title.replace(/[^a-zA-Z0-9]/g, '_')}_${userRating.rating}_10.png`;
+        a.download = `${details.title.replace(/[^a-zA-Z0-9]/g, '_')}_${userRating.rating}_5.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -128,10 +128,10 @@ export function DetailScreen({ mediaType, source, fetchDetails }: DetailScreenPr
       }
 
       await Share.share({
-        message: `I rated ${details.title} ${userRating.rating}/10 on StreamTime!`,
+        message: `I rated ${details.title} ${userRating.rating}/5 on StreamTime!`,
       });
     } catch {
-      const fallbackMsg = `I rated ${details.title} ${userRating.rating}/10 on StreamTime!`;
+      const fallbackMsg = `I rated ${details.title} ${userRating.rating}/5 on StreamTime!`;
       if (Platform.OS === 'web') {
         await navigator.clipboard.writeText(fallbackMsg);
         Alert.alert('Copied!', 'Rating text copied to clipboard.');
@@ -219,7 +219,7 @@ export function DetailScreen({ mediaType, source, fetchDetails }: DetailScreenPr
               <View style={styles.userRatingHeader}>
                 <View style={styles.userRatingBadge}>
                   <Text style={styles.userRatingNumber}>{userRating.rating}</Text>
-                  <Text style={styles.userRatingSlash}>/10</Text>
+                  <Text style={styles.userRatingSlash}>/5</Text>
                 </View>
                 {userRating.review && (
                   <Text style={styles.userRatingReview}>"{userRating.review}"</Text>

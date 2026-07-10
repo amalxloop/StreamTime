@@ -23,11 +23,11 @@ export interface ImportResult {
   failed: { title: string; reason: string }[];
 }
 
-function letterboxdRatingToTen(letterboxdRating: string): number {
+function letterboxdRatingToFive(letterboxdRating: string): number {
   const parsed = parseFloat(letterboxdRating);
   if (isNaN(parsed)) return 0;
-  const scaled = Math.round(parsed * 2);
-  return Math.max(1, Math.min(10, scaled));
+  const rounded = Math.round(parsed);
+  return Math.max(1, Math.min(5, rounded));
 }
 
 export function parseLetterboxdCsv(
@@ -113,7 +113,7 @@ export async function importLetterboxdCsv(
       title: matched.title,
       posterPath: matched.posterPath,
       overview: matched.overview,
-      rating: letterboxdRatingToTen(row.Rating),
+      rating: letterboxdRatingToFive(row.Rating),
       review: row.Review?.trim() || null,
     });
   }
