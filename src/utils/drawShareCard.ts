@@ -60,41 +60,61 @@ export async function generateShareCardImage(data: ShareCardData): Promise<Blob>
     } catch {}
   }
 
-  const centerY = HEIGHT / 2 - 50;
+  // ---------- Layout coordinates ----------
+  // Everything is placed incrementally to minimize dead space. The header is at PADDING (40).
+  // poster and text sit side by side:
+  //   left column: poster        @ x=40
+  //   right column: everything else @ x=160
+  //   we calculate the lowest_y used and place the footer just below (but not below 650).
+  const COL_LEFT = PADDING;                           // 40
+  const COL_RIGHT = COL_LEFT + 120;                    // 160
+  const COL_TITLE_W = WIDTH - COL_RIGHT - PADDING;     // 400
+
+  // poster top: right after STREAMTIME subtitle + a bit of breathing
+  const POSTER_TOP = 130;
+  const POSTER_HEIGHT = 150;
+  const POSTER_BOT = POSTER_TOP + POSTER_HEIGHT;      // 280
 
   // Poster
   if (posterImg) {
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(PADDING, centerY - 75, 100, 150, 10);
+    ctx.roundRect(COL_LEFT, POSTER_TOP, 100, POSTER_HEIGHT, 10);
     ctx.closePath();
     ctx.clip();
-    ctx.drawImage(posterImg, PADDING, centerY - 75, 100, 150);
+    ctx.drawImage(posterImg, COL_LEFT, POSTER_TOP, 100, POSTER_HEIGHT);
     ctx.restore();
   }
 
-  const textX = PADDING + 120;
+  // Text right of poster
+  let textCursor = POSTER_TOP + 20;  // start at 150
 
   // Media Type badge
   ctx.fillStyle = '#ff6b35';
   ctx.font = 'bold 11px sans-serif';
-  ctx.fillText(mediaType.toUpperCase(), textX, centerY - 60);
+  ctx.fillText(mediaType.toUpperCase(), COL_RIGHT, textCursor);
+  textCursor += 24;
 
   // Title
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 22px sans-serif';
-  const titleParts = splitTextToFit(ctx, title, WIDTH - textX - PADDING, 2);
+  const titleParts = splitTextToFit(ctx, title, COL_TITLE_W, 2);
   titleParts.forEach((line, i) => {
-    ctx.fillText(line, textX, centerY - 38 + i * 28);
+    ctx.fillText(line, COL_RIGHT, textCursor + i * 28);
   });
+  const titleRows = Math.max(titleParts.length, 1);
+  textCursor += titleRows * 28 + 16;
 
-  // Rating dots: 1-5 pills matching the app UI
-  const dotY = centerY + 30;
+  // Ensure cursor is past the poster bottom so nothing overlaps
+  if (textCursor < POSTER_BOT + 16) {
+    textCursor = POSTER_BOT + 16;
+  }
+
+  // Rating dots: 1-5 pills left-aligned with the text
+  const dotY = textCursor + 14;   // center of first dot row
   const dotSize = 28;
   const dotGap = 6;
-  const totalWidth = 5 * dotSize + 4 * dotGap;
-  const remainingWidth = WIDTH - textX - PADDING;
-  const dotX = textX + Math.max(0, (remainingWidth - totalWidth) / 2);
+  const dotX = COL_RIGHT;
   for (let i = 0; i < 5; i++) {
     const num = i + 1;
     const filled = num <= rating;
@@ -121,23 +141,27 @@ export async function generateShareCardImage(data: ShareCardData): Promise<Blob>
   // Rating text
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 20px Arial, sans-serif';
-  ctx.fillText(`${rating}/5`, textX + 5 * (dotSize + dotGap) + 12, dotY + 6);
+  ctx.fillText(`${rating}/5`, dotX + 5 * (dotSize + dotGap) + 12, dotY + 6);
+
+  textCursor = dotY + dotSize / 2;   // bottom of the dot row
 
   // Review
   if (review) {
+    const reviewY = textCursor + 20;
     ctx.fillStyle = '#cccccc';
     ctx.font = 'italic 18px Arial, sans-serif';
-    const reviewLines = splitTextToFit(ctx, `"${review}"`, WIDTH - PADDING * 3 - 80, 4);
-    const reviewY = dotY + 45;
+    const reviewLines = splitTextToFit(ctx, `"${review}"`, COL_TITLE_W, 4);
     reviewLines.forEach((line, i) => {
-      ctx.fillText(line, textX, reviewY + i * 26);
+      ctx.fillText(line, COL_RIGHT, reviewY + i * 26);
     });
+    textCursor = reviewY + (reviewLines.length) * 26;
   }
 
   // Footer
+  const footerTop = Math.max(textCursor + 60, HEIGHT - 120);
   ctx.fillStyle = '#555555';
   ctx.font = '12px sans-serif';
-  ctx.fillText('Shared from StreamTime', WIDTH / 2 - 70, HEIGHT - PADDING);
+  ctx.fillText('Shared from StreamTime', WIDTH / 2 - 70, footerTop);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {

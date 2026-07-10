@@ -70,9 +70,9 @@ export function ReviewModal({
               multiline
               value={review}
               onChangeText={setReview}
-              maxLength={1000}
+              maxLength={300}
             />
-            <Text style={styles.charCount}>{review.length}/1000</Text>
+            <Text style={styles.charCount}>{review.length}/300</Text>
           </View>
 
           <View style={styles.actions}>
