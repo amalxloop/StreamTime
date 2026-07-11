@@ -135,7 +135,7 @@ export default function MyRatingsScreen() {
                     <Text style={styles.ratingSlash}>/5</Text>
                   </View>
                   {item.review && (
-                    <Text style={styles.review} numberOfLines={2}>
+                    <Text style={styles.review}>
                       "{item.review}"
                     </Text>
                   )}
